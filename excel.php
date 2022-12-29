@@ -30,15 +30,22 @@ function plugin_page(){
   <br/>
   <h2>Export</h2>
   <form method="post">
-  <input type="submit" name="export" class="button" value="export" />
+    <label for="instock">InStock?</label>
+    <input type="checkbox" name="instock" value="true" />
+    <br/>
+    <input type="submit" name="export" class="button" value="export" />
   </form>
   <br>
   <h2>Import</h2>
   <?php 
 }
 
-if( array_key_exists( 'export', $_POST ) ){
-  $products = get_products();
+if( array_key_exists( 'export', $_POST ) and array_key_exists( 'instock', $_POST ) ){
+  $products = get_products(true);
+  $xlsx = Shuchkin\SimpleXLSXGen::fromArray( $products );
+  $xlsx->downloadAs('export.xlsx');
+} elseif (array_key_exists( 'export', $_POST )){
+  $products = get_products(false);
   $xlsx = Shuchkin\SimpleXLSXGen::fromArray( $products );
   $xlsx->downloadAs('export.xlsx');
 }
