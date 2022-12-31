@@ -31,12 +31,17 @@ function plugin_page(){
   <h2>Export</h2>
   <form method="post">
     <label for="instock">InStock?</label>
-    <input type="checkbox" name="instock" value="true" />
+    <input type="checkbox" name="instock" value="true" checked />
     <br/>
     <input type="submit" name="export" class="button" value="export" />
   </form>
-  <br>
+  <br><hr>
   <h2>Import</h2>
+  <form meyhod="post">
+    <input type="file" name="file" accept="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet">
+    <br/>
+    <input type="submit" name="update" class="button" value="import & update" />
+  </form>
   <?php 
 }
 
