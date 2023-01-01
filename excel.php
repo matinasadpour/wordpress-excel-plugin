@@ -8,8 +8,6 @@
 * Author URI: 
 **/
 
-include 'SimpleXLSXGen.php';
-include 'SimpleXLSX.php';
 include 'functions.php';
 
 add_action( 'admin_menu', 'plugin_menu' );
@@ -29,28 +27,20 @@ function plugin_page(){
   <h1>WordPress Excel Plugin</h1>
   <br/>
   <h2>Export</h2>
-  <form method="post">
+  <form method="POST">
     <label for="instock">InStock?</label>
-    <input type="checkbox" name="instock" value="true" checked />
+    <input type="checkbox" name="wxp_instock" value="true" checked />
     <br/>
-    <input type="submit" name="export" class="button" value="export" />
+    <input type="submit" name="wxp_export" class="button" value="export" />
   </form>
   <br><hr>
   <h2>Import</h2>
-  <form meyhod="post">
-    <input type="file" name="file" accept="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet">
+  <form method="POST" enctype="multipart/form-data">
+    <input type="file" name="wxp_file" accept="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet">
     <br/>
-    <input type="submit" name="update" class="button" value="import & update" />
+    <?php echo wp_nonce_field( 'upload_wxp_file', 'wxp_nonce', true, false ); ?>
+    <input type="submit" name="wxp_update" class="button" value="import & update" />
   </form>
   <?php 
 }
 
-if( array_key_exists( 'export', $_POST ) and array_key_exists( 'instock', $_POST ) ){
-  $products = get_products(true);
-  $xlsx = Shuchkin\SimpleXLSXGen::fromArray( $products );
-  $xlsx->downloadAs('export.xlsx');
-} elseif (array_key_exists( 'export', $_POST )){
-  $products = get_products(false);
-  $xlsx = Shuchkin\SimpleXLSXGen::fromArray( $products );
-  $xlsx->downloadAs('export.xlsx');
-}
