@@ -3,6 +3,9 @@
 include 'SimpleXLSXGen.php';
 include 'SimpleXLSX.php';
 
+use Shuchkin\SimpleXLSXGen;
+use Shuchkin\SimpleXLSX;
+
 function get_products($instock){
   global $wpdb;
 
@@ -22,7 +25,7 @@ function get_products($instock){
   }
 
   $price = $wpdb->get_results( "SELECT post_id, meta_key, meta_value FROM wp_postmeta WHERE meta_key = '_regular_price'  ORDER BY `wp_postmeta`.`post_id`  DESC");
-  $sale = $wpdb->get_results( "SELECT post_id, meta_key, meta_value FROM wp_postmeta WHERE meta_key = '_price'  ORDER BY `wp_postmeta`.`post_id`  DESC");
+  $sale = $wpdb->get_results( "SELECT post_id, meta_key, meta_value FROM wp_postmeta WHERE meta_key = '_sale_price'  ORDER BY `wp_postmeta`.`post_id`  DESC");
   $stock = $wpdb->get_results( "SELECT post_id, meta_key, meta_value FROM wp_postmeta WHERE meta_key = '_stock_status'  ORDER BY `wp_postmeta`.`post_id`  DESC");
 
   foreach($price as $key=>$value){
@@ -71,11 +74,11 @@ function get_products($instock){
 function wxp_submit(){
   if( isset( $_POST['wxp_export']) and isset( $_POST['wxp_instock']) ){
     $products = get_products(true);
-    $xlsx = Shuchkin\SimpleXLSXGen::fromArray( $products );
+    $xlsx = SimpleXLSXGen::fromArray( $products );
     $xlsx->downloadAs('export.xlsx');
   } elseif (isset( $_POST['wxp_export'])){
     $products = get_products(false);
-    $xlsx = Shuchkin\SimpleXLSXGen::fromArray( $products );
+    $xlsx = SimpleXLSXGen::fromArray( $products );
     $xlsx->downloadAs('export.xlsx');
   }
 
@@ -102,12 +105,29 @@ function wxp_submit(){
 			// There was an error uploading the image.
 			wp_die( $attachment_id->get_error_message() );
 		} else {
-      // work with this
-      // $attachment_id['url']
-
-
 			// We will redirect the user to the attachment page after uploading the file successfully.
 			wp_redirect( menu_page_url('wordpress-excel-plugin', true) );
+
+      if ( $xlsx = SimpleXLSX::parseData(file_get_contents($attachment_id['url'])) ) {
+          global $wpdb;
+          foreach($xlsx->rows() as $key=>$row){
+            if($key==0) continue;
+            if($row[2]) {
+              $wpdb->update('wp_postmeta', array('meta_value'=>$row[2]), array('meta_key'=>'_regular_price', 'post_id'=>$row[0]));
+            }
+            else{
+              $wpdb->delete('wp_postmeta',array('meta_key'=>'_regular_price', 'post_id'=>$row[0])); 
+            }
+            if($row[3]){
+              $wpdb->update('wp_postmeta', array('meta_value'=>$row[3]), array('meta_key'=>'_sale_price', 'post_id'=>$row[0]));
+            }else{
+              $wpdb->delete('wp_postmeta', array('meta_key'=>'_sale_price', 'post_id'=>$row[0]));
+            }
+
+          }
+      } else {
+          echo SimpleXLSX::parseError();
+      }
 		}
   }
 }
