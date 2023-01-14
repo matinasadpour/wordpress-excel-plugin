@@ -118,7 +118,7 @@ function wxp_submit(){
                 $wpdb->insert('wp_postmeta', array('post_id'=>$row[0], 'meta_key'=>'_regular_price', 'meta_value'=>$row[2]));
               }
             }else{
-              $wpdb->delete('wp_postmeta',array('meta_key'=>'_regular_price', 'post_id'=>$row[0])); 
+              $wpdb->update('wp_postmeta', array('meta_value'=>'outofstock'), array('meta_key'=>'_stock_status', 'post_id'=>$row[0]));
             }
             if($row[3]){
               if(!$wpdb->update('wp_postmeta', array('meta_value'=>$row[3]), array('meta_key'=>'_sale_price', 'post_id'=>$row[0]))){
@@ -148,7 +148,7 @@ function wxp_submit(){
             $wpdb->insert('wp_postmeta', array('post_id'=>$row[4], 'meta_key'=>'_regular_price', 'meta_value'=>$row[2]));
           }
         }else{
-          $wpdb->delete('wp_postmeta',array('meta_key'=>'_regular_price', 'post_id'=>$row[4])); 
+          $wpdb->update('wp_postmeta', array('meta_value'=>'outofstock'), array('meta_key'=>'_stock_status', 'post_id'=>$row[4]));
         }
         if($row[3]){
           if(!$wpdb->update('wp_postmeta', array('meta_value'=>$row[3]), array('meta_key'=>'_sale_price', 'post_id'=>$row[4]))){
