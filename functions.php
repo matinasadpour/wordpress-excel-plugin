@@ -72,8 +72,6 @@ function get_products($instock){
 }
 
 function wxp_submit(){
-  global $wpdb;
-
   if( isset( $_POST['wxp_export']) and isset( $_POST['wxp_instock']) ){
     $products = get_products(true);
     $xlsx = SimpleXLSXGen::fromArray( $products );
@@ -107,60 +105,21 @@ function wxp_submit(){
 			// There was an error uploading the image.
 			wp_die( $attachment_id->get_error_message() );
 		} else {
-			// We will redirect the user to the attachment page after uploading the file successfully.
+      wxp_update_products($attachment_id['url'], 0, 2, 3);
+
+      // We will redirect the user to the attachment page after uploading the file successfully.
 			wp_redirect( menu_page_url('wordpress-excel-plugin', true) );
-
-      if ( $xlsx = SimpleXLSX::parseData(file_get_contents($attachment_id['url'])) ) {
-          foreach($xlsx->rows() as $key=>$row){
-            if($key==0) continue;
-            if($row[2]) {
-              if(!$wpdb->update('wp_postmeta', array('meta_value'=>$row[2]), array('meta_key'=>'_regular_price', 'post_id'=>$row[0]))){
-                $wpdb->insert('wp_postmeta', array('post_id'=>$row[0], 'meta_key'=>'_regular_price', 'meta_value'=>$row[2]));
-              }
-            }else{
-              $wpdb->update('wp_postmeta', array('meta_value'=>'outofstock'), array('meta_key'=>'_stock_status', 'post_id'=>$row[0]));
-            }
-            if($row[3]){
-              if(!$wpdb->update('wp_postmeta', array('meta_value'=>$row[3]), array('meta_key'=>'_sale_price', 'post_id'=>$row[0]))){
-                $wpdb->insert('wp_postmeta', array('post_id'=>$row[0], 'meta_key'=>'_sale_price', 'meta_value'=>$row[3]));
-              }
-            }else{
-              $wpdb->delete('wp_postmeta', array('meta_key'=>'_sale_price', 'post_id'=>$row[0]));
-            }
-
-          }
-      } else {
-        wp_die( esc_html__( SimpleXLSX::parseError(), 'theme-text-domain' ) );
-      }
 		}
   }
 
   if(isset( $_POST['wxp_url_update'])){
+    global $wpdb;
+
     if(!$wpdb->update('wp_options', array('option_value'=>$_POST['wxp_url']), array('option_name'=>'wxp_url'))){
       $wpdb->insert('wp_options', array('option_name'=>'wxp_url', 'option_value'=>$_POST['wxp_url']));
     }
 
-    if ( $xlsx = SimpleXLSX::parseData(file_get_contents($_POST['wxp_url'])) ) {
-      foreach($xlsx->rows() as $key=>$row){
-        if(!$row[4]) continue;
-        if($row[2]) {
-          if(!$wpdb->update('wp_postmeta', array('meta_value'=>$row[2]), array('meta_key'=>'_regular_price', 'post_id'=>$row[4]))){
-            $wpdb->insert('wp_postmeta', array('post_id'=>$row[4], 'meta_key'=>'_regular_price', 'meta_value'=>$row[2]));
-          }
-        }else{
-          $wpdb->update('wp_postmeta', array('meta_value'=>'outofstock'), array('meta_key'=>'_stock_status', 'post_id'=>$row[4]));
-        }
-        if($row[3]){
-          if(!$wpdb->update('wp_postmeta', array('meta_value'=>$row[3]), array('meta_key'=>'_sale_price', 'post_id'=>$row[4]))){
-            $wpdb->insert('wp_postmeta', array('post_id'=>$row[4], 'meta_key'=>'_sale_price', 'meta_value'=>$row[3]));
-          }
-        }else{
-          $wpdb->delete('wp_postmeta', array('meta_key'=>'_sale_price', 'post_id'=>$row[4]));
-        }
-      }
-    } else {
-      wp_die( esc_html__( SimpleXLSX::parseError(), 'theme-text-domain' ) );
-    }
+    wxp_update_products($_POST['wxp_url'], 4, 2, 3);
   }
 }
 
@@ -170,4 +129,44 @@ function wxp_get_url(){
   global $wpdb;
   $res = $wpdb->get_results( "SELECT option_value FROM wp_options WHERE option_name = 'wxp_url'");
   return $res[0]->option_value;
+}
+
+function wxp_update_products($url, $id_col, $price_col, $sale_col){
+  global $wpdb;
+
+  if ( $xlsx = SimpleXLSX::parseData(file_get_contents($_POST['wxp_url'])) ) {
+    foreach($xlsx->rows() as $key=>$row){
+      if(empty($row[$id_col])) continue;
+      if(!empty($row[$price_col])) {
+        $wpdb->update('wp_postmeta', array('meta_value'=>'instock'), array('meta_key'=>'_stock_status', 'post_id'=>$row[$id_col]));
+        $reg_price = $wpdb->get_results( "SELECT * FROM wp_postmeta WHERE meta_key = '_regular_price' AND post_id = ".$row[$id_col]);
+        if($reg_price){
+          $wpdb->update('wp_postmeta', array('meta_value'=>$row[$price_col]), array('meta_key'=>'_regular_price', 'post_id'=>$row[$id_col]));
+        }else{
+          $wpdb->insert('wp_postmeta', array('post_id'=>$row[$id_col], 'meta_key'=>'_regular_price', 'meta_value'=>$row[$price_col]));
+        }
+
+        if(!empty($row[$sale_col])){
+          $sale_price = $wpdb->get_results( "SELECT * FROM wp_postmeta WHERE meta_key = '_sale_price' AND post_id = ".$row[$id_col]);
+          if($sale_price){
+            $wpdb->update('wp_postmeta', array('meta_value'=>$row[$sale_col]), array('meta_key'=>'_sale_price', 'post_id'=>$row[$id_col]));
+          }else{
+            $wpdb->insert('wp_postmeta', array('post_id'=>$row[$id_col], 'meta_key'=>'_sale_price', 'meta_value'=>$row[$sale_col]));
+          }
+        }else{
+          $wpdb->delete('wp_postmeta', array('meta_key'=>'_sale_price', 'post_id'=>$row[$id_col]));
+        }
+
+        if(!empty($row[$sale_col])){
+          $wpdb->update('wp_postmeta', array('meta_value'=>$row[$sale_col]), array('meta_key'=>'_price', 'post_id'=>$row[$id_col]));
+        }elseif(!empty($row[$price_col])){
+          $wpdb->update('wp_postmeta', array('meta_value'=>$row[$price_col]), array('meta_key'=>'_price', 'post_id'=>$row[$id_col]));
+        }
+      }else{
+        $wpdb->update('wp_postmeta', array('meta_value'=>'outofstock'), array('meta_key'=>'_stock_status', 'post_id'=>$row[$id_col]));
+      }
+    }
+  } else {
+    wp_die( esc_html__( SimpleXLSX::parseError(), 'theme-text-domain' ) );
+  } 
 }
