@@ -72,6 +72,8 @@ function get_products($instock){
 }
 
 function wxp_submit(){
+  global $wpdb;
+
   if( isset( $_POST['wxp_export']) and isset( $_POST['wxp_instock']) ){
     $products = get_products(true);
     $xlsx = SimpleXLSXGen::fromArray( $products );
@@ -109,21 +111,18 @@ function wxp_submit(){
 			wp_redirect( menu_page_url('wordpress-excel-plugin', true) );
 
       if ( $xlsx = SimpleXLSX::parseData(file_get_contents($attachment_id['url'])) ) {
-          global $wpdb;
           foreach($xlsx->rows() as $key=>$row){
             if($key==0) continue;
             if($row[2]) {
               if(!$wpdb->update('wp_postmeta', array('meta_value'=>$row[2]), array('meta_key'=>'_regular_price', 'post_id'=>$row[0]))){
                 $wpdb->insert('wp_postmeta', array('post_id'=>$row[0], 'meta_key'=>'_regular_price', 'meta_value'=>$row[2]));
               }
-            }
-            else{
+            }else{
               $wpdb->delete('wp_postmeta',array('meta_key'=>'_regular_price', 'post_id'=>$row[0])); 
             }
             if($row[3]){
               if(!$wpdb->update('wp_postmeta', array('meta_value'=>$row[3]), array('meta_key'=>'_sale_price', 'post_id'=>$row[0]))){
                 $wpdb->insert('wp_postmeta', array('post_id'=>$row[0], 'meta_key'=>'_sale_price', 'meta_value'=>$row[3]));
-
               }
             }else{
               $wpdb->delete('wp_postmeta', array('meta_key'=>'_sale_price', 'post_id'=>$row[0]));
@@ -131,10 +130,44 @@ function wxp_submit(){
 
           }
       } else {
-          echo SimpleXLSX::parseError();
+        wp_die( esc_html__( SimpleXLSX::parseError(), 'theme-text-domain' ) );
       }
 		}
+  }
+
+  if(isset( $_POST['wxp_url_update'])){
+    if(!$wpdb->update('wp_options', array('option_value'=>$_POST['wxp_url']), array('option_name'=>'wxp_url'))){
+      $wpdb->insert('wp_options', array('option_name'=>'wxp_url', 'option_value'=>$_POST['wxp_url']));
+    }
+
+    if ( $xlsx = SimpleXLSX::parseData(file_get_contents($_POST['wxp_url'])) ) {
+      foreach($xlsx->rows() as $key=>$row){
+        if(!$row[4]) continue;
+        if($row[2]) {
+          if(!$wpdb->update('wp_postmeta', array('meta_value'=>$row[2]), array('meta_key'=>'_regular_price', 'post_id'=>$row[4]))){
+            $wpdb->insert('wp_postmeta', array('post_id'=>$row[4], 'meta_key'=>'_regular_price', 'meta_value'=>$row[2]));
+          }
+        }else{
+          $wpdb->delete('wp_postmeta',array('meta_key'=>'_regular_price', 'post_id'=>$row[4])); 
+        }
+        if($row[3]){
+          if(!$wpdb->update('wp_postmeta', array('meta_value'=>$row[3]), array('meta_key'=>'_sale_price', 'post_id'=>$row[4]))){
+            $wpdb->insert('wp_postmeta', array('post_id'=>$row[4], 'meta_key'=>'_sale_price', 'meta_value'=>$row[3]));
+          }
+        }else{
+          $wpdb->delete('wp_postmeta', array('meta_key'=>'_sale_price', 'post_id'=>$row[4]));
+        }
+      }
+    } else {
+      wp_die( esc_html__( SimpleXLSX::parseError(), 'theme-text-domain' ) );
+    }
   }
 }
 
 add_action( 'init', 'wxp_submit' );
+
+function wxp_get_url(){
+  global $wpdb;
+  $res = $wpdb->get_results( "SELECT option_value FROM wp_options WHERE option_name = 'wxp_url'");
+  return $res[0]->option_value;
+}

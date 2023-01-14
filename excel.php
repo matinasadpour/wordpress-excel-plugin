@@ -41,6 +41,13 @@ function plugin_page(){
     <?php echo wp_nonce_field( 'upload_wxp_file', 'wxp_nonce', true, false ); ?>
     <input type="submit" name="wxp_update" class="button" value="import & update" />
   </form>
+  <br><hr>
+  <h2>Update with Google Doc Sheets</h2>
+  <form method="POST" enctype="multipart/form-data">
+    <input type="text" name="wxp_url" value="<?php echo wxp_get_url(); ?>" size="135">
+    <br/>
+    <input type="submit" name="wxp_url_update" class="button" value="update" />
+  </form>
   <?php 
 }
 
