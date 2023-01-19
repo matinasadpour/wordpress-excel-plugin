@@ -134,11 +134,11 @@ function wxp_get_url(){
   return $res[0]->option_value;
 }
 
-function wxp_update_products($url, $id_col, $price_col, $sale_col){
+function wxp_update_products($file_url, $id_col, $price_col, $sale_col){
   global $wpdb;
   $prefix = $wpdb->prefix;
 
-  if ( $xlsx = SimpleXLSX::parseData(file_get_contents($_POST['wxp_url'])) ) {
+  if ( $xlsx = SimpleXLSX::parseData(file_get_contents($file_url)) ) {
     foreach($xlsx->rows() as $key=>$row){
       if(empty($row[$id_col])) continue;
       if(!empty($row[$price_col])) {
