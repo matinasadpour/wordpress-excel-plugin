@@ -141,7 +141,7 @@ function wxp_update_products($file_path, $id_col, $price_col, $sale_col){
   $curl = curl_init($file_path);
   curl_setopt($curl, CURLOPT_RETURNTRANSFER, true);
   curl_setopt($curl, CURLOPT_FOLLOWLOCATION, true);
-  $res = curl_exec();
+  $res = curl_exec($curl);
   curl_close();
 
   if ( $xlsx = SimpleXLSX::parseData($res) ) {
