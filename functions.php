@@ -134,11 +134,17 @@ function wxp_get_url(){
   return $res[0]->option_value;
 }
 
-function wxp_update_products($file_url, $id_col, $price_col, $sale_col){
+function wxp_update_products($file_path, $id_col, $price_col, $sale_col){
   global $wpdb;
   $prefix = $wpdb->prefix;
 
-  if ( $xlsx = SimpleXLSX::parseData(file_get_contents($file_url)) ) {
+  $curl = curl_init($file_path);
+  curl_setopt($curl, CURLOPT_RETURNTRANSFER, true);
+  curl_setopt($curl, CURLOPT_FOLLOWLOCATION, true);
+  $res = curl_exec();
+  curl_close();
+
+  if ( $xlsx = SimpleXLSX::parseData($res) ) {
     foreach($xlsx->rows() as $key=>$row){
       if(empty($row[$id_col])) continue;
       if(!empty($row[$price_col])) {
