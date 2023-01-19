@@ -8,8 +8,9 @@ use Shuchkin\SimpleXLSX;
 
 function get_products($instock){
   global $wpdb;
+  $prefix = $wpdb->prefix;
 
-  $products = $wpdb->get_results( "SELECT ID, post_type, post_title, post_parent FROM wp_posts WHERE post_type = 'product' OR post_type = 'product_variation' ORDER BY `wp_posts`.`ID`  DESC");
+  $products = $wpdb->get_results( "SELECT ID, post_type, post_title, post_parent FROM " . $prefix . "posts WHERE post_type = 'product' OR post_type = 'product_variation' ORDER BY `" . $prefix . "posts`.`ID`  DESC");
   $repeat = array();
   foreach($products as $product){
     if($product->post_parent){
@@ -24,9 +25,9 @@ function get_products($instock){
       }
   }
 
-  $price = $wpdb->get_results( "SELECT post_id, meta_key, meta_value FROM wp_postmeta WHERE meta_key = '_regular_price'  ORDER BY `wp_postmeta`.`post_id`  DESC");
-  $sale = $wpdb->get_results( "SELECT post_id, meta_key, meta_value FROM wp_postmeta WHERE meta_key = '_sale_price'  ORDER BY `wp_postmeta`.`post_id`  DESC");
-  $stock = $wpdb->get_results( "SELECT post_id, meta_key, meta_value FROM wp_postmeta WHERE meta_key = '_stock_status'  ORDER BY `wp_postmeta`.`post_id`  DESC");
+  $price = $wpdb->get_results( "SELECT post_id, meta_key, meta_value FROM " . $prefix . "postmeta WHERE meta_key = '_regular_price'  ORDER BY `" . $prefix . "postmeta`.`post_id`  DESC");
+  $sale = $wpdb->get_results( "SELECT post_id, meta_key, meta_value FROM " . $prefix . "postmeta WHERE meta_key = '_sale_price'  ORDER BY `" . $prefix . "postmeta`.`post_id`  DESC");
+  $stock = $wpdb->get_results( "SELECT post_id, meta_key, meta_value FROM " . $prefix . "postmeta WHERE meta_key = '_stock_status'  ORDER BY `" . $prefix . "postmeta`.`post_id`  DESC");
 
   foreach($price as $key=>$value){
     if(in_array($value->post_id, $repeat)){
@@ -114,9 +115,10 @@ function wxp_submit(){
 
   if(isset( $_POST['wxp_url_update'])){
     global $wpdb;
+    $prefix = $wpdb->prefix;
 
-    if(!$wpdb->update('wp_options', array('option_value'=>$_POST['wxp_url']), array('option_name'=>'wxp_url'))){
-      $wpdb->insert('wp_options', array('option_name'=>'wxp_url', 'option_value'=>$_POST['wxp_url']));
+    if(!$wpdb->update( $prefix .'options', array('option_value'=>$_POST['wxp_url']), array('option_name'=>'wxp_url'))){
+      $wpdb->insert( $prefix .'options', array('option_name'=>'wxp_url', 'option_value'=>$_POST['wxp_url']));
     }
 
     wxp_update_products($_POST['wxp_url'], 4, 2, 3);
@@ -127,43 +129,45 @@ add_action( 'init', 'wxp_submit' );
 
 function wxp_get_url(){
   global $wpdb;
-  $res = $wpdb->get_results( "SELECT option_value FROM wp_options WHERE option_name = 'wxp_url'");
+  $prefix = $wpdb->prefix;
+  $res = $wpdb->get_results( "SELECT option_value FROM " . $prefix . "options WHERE option_name = 'wxp_url'");
   return $res[0]->option_value;
 }
 
 function wxp_update_products($url, $id_col, $price_col, $sale_col){
   global $wpdb;
+  $prefix = $wpdb->prefix;
 
   if ( $xlsx = SimpleXLSX::parseData(file_get_contents($_POST['wxp_url'])) ) {
     foreach($xlsx->rows() as $key=>$row){
       if(empty($row[$id_col])) continue;
       if(!empty($row[$price_col])) {
-        $wpdb->update('wp_postmeta', array('meta_value'=>'instock'), array('meta_key'=>'_stock_status', 'post_id'=>$row[$id_col]));
-        $reg_price = $wpdb->get_results( "SELECT * FROM wp_postmeta WHERE meta_key = '_regular_price' AND post_id = ".$row[$id_col]);
+        $wpdb->update( $prefix .'postmeta', array('meta_value'=>'instock'), array('meta_key'=>'_stock_status', 'post_id'=>$row[$id_col]));
+        $reg_price = $wpdb->get_results( "SELECT * FROM " . $prefix . "postmeta WHERE meta_key = '_regular_price' AND post_id = ".$row[$id_col]);
         if($reg_price){
-          $wpdb->update('wp_postmeta', array('meta_value'=>$row[$price_col]), array('meta_key'=>'_regular_price', 'post_id'=>$row[$id_col]));
+          $wpdb->update( $prefix .'postmeta', array('meta_value'=>$row[$price_col]), array('meta_key'=>'_regular_price', 'post_id'=>$row[$id_col]));
         }else{
-          $wpdb->insert('wp_postmeta', array('post_id'=>$row[$id_col], 'meta_key'=>'_regular_price', 'meta_value'=>$row[$price_col]));
+          $wpdb->insert( $prefix .'postmeta', array('post_id'=>$row[$id_col], 'meta_key'=>'_regular_price', 'meta_value'=>$row[$price_col]));
         }
 
         if(!empty($row[$sale_col])){
-          $sale_price = $wpdb->get_results( "SELECT * FROM wp_postmeta WHERE meta_key = '_sale_price' AND post_id = ".$row[$id_col]);
+          $sale_price = $wpdb->get_results( "SELECT * FROM " . $prefix . "postmeta WHERE meta_key = '_sale_price' AND post_id = ".$row[$id_col]);
           if($sale_price){
-            $wpdb->update('wp_postmeta', array('meta_value'=>$row[$sale_col]), array('meta_key'=>'_sale_price', 'post_id'=>$row[$id_col]));
+            $wpdb->update( $prefix .'postmeta', array('meta_value'=>$row[$sale_col]), array('meta_key'=>'_sale_price', 'post_id'=>$row[$id_col]));
           }else{
-            $wpdb->insert('wp_postmeta', array('post_id'=>$row[$id_col], 'meta_key'=>'_sale_price', 'meta_value'=>$row[$sale_col]));
+            $wpdb->insert( $prefix .'postmeta', array('post_id'=>$row[$id_col], 'meta_key'=>'_sale_price', 'meta_value'=>$row[$sale_col]));
           }
         }else{
-          $wpdb->delete('wp_postmeta', array('meta_key'=>'_sale_price', 'post_id'=>$row[$id_col]));
+          $wpdb->delete( $prefix .'postmeta', array('meta_key'=>'_sale_price', 'post_id'=>$row[$id_col]));
         }
 
         if(!empty($row[$sale_col])){
-          $wpdb->update('wp_postmeta', array('meta_value'=>$row[$sale_col]), array('meta_key'=>'_price', 'post_id'=>$row[$id_col]));
+          $wpdb->update( $prefix .'postmeta', array('meta_value'=>$row[$sale_col]), array('meta_key'=>'_price', 'post_id'=>$row[$id_col]));
         }elseif(!empty($row[$price_col])){
-          $wpdb->update('wp_postmeta', array('meta_value'=>$row[$price_col]), array('meta_key'=>'_price', 'post_id'=>$row[$id_col]));
+          $wpdb->update( $prefix .'postmeta', array('meta_value'=>$row[$price_col]), array('meta_key'=>'_price', 'post_id'=>$row[$id_col]));
         }
       }else{
-        $wpdb->update('wp_postmeta', array('meta_value'=>'outofstock'), array('meta_key'=>'_stock_status', 'post_id'=>$row[$id_col]));
+        $wpdb->update( $prefix .'postmeta', array('meta_value'=>'outofstock'), array('meta_key'=>'_stock_status', 'post_id'=>$row[$id_col]));
       }
     }
   } else {
