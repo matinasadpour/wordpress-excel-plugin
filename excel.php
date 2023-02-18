@@ -3,7 +3,7 @@
 * Plugin Name: wordpress-excel-plugin
 * Plugin URI: 
 * Description: import/export/update woocommerce products
-* Version: 1.2.0
+* Version: 1.2.1
 * Author: Matin Asadpour
 * Author URI: 
 **/
