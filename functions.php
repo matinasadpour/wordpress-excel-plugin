@@ -176,6 +176,22 @@ function wxp_update_products($file_path, $id_col, $price_col, $sale_col){
         $wpdb->update( $prefix .'postmeta', array('meta_value'=>'outofstock'), array('meta_key'=>'_stock_status', 'post_id'=>$row[$id_col]));
       }
     }
+
+    $products = $wpdb->get_results( "SELECT ID FROM " . $prefix . "posts WHERE post_type = 'product' AND post_parent=0 ORDER BY `" . $prefix . "posts`.`ID`  DESC");
+    foreach($products as $key=>$product){
+      $variations = $wpdb->get_results( "SELECT ID FROM " . $prefix . "posts WHERE post_type = 'product_variation' AND post_parent=" . $product->ID . " ORDER BY `" . $prefix . "posts`.`ID`  DESC");
+      if(!$variations) continue;
+      $instock = false;
+      foreach($variations as $key=>$variation){
+        $status = $wpdb->get_results( "SELECT meta_value FROM " . $prefix . "postmeta WHERE meta_key = '_stock_status' AND post_id=" . $product->ID);
+        if($status->meta_value=='instock') $instock = true;
+      }
+      if($instock){
+        $wpdb->update( $prefix .'postmeta', array('meta_value'=>'instock'), array('meta_key'=>'_stock_status', 'post_id'=>$product->ID));
+      }else{
+        $wpdb->update( $prefix .'postmeta', array('meta_value'=>'outofstock'), array('meta_key'=>'_stock_status', 'post_id'=>$product->ID));
+      }
+    }
   } else {
     wp_die( esc_html__( SimpleXLSX::parseError(), 'theme-text-domain' ) );
   } 
