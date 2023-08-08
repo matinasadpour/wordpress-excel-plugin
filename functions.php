@@ -188,8 +188,10 @@ function wxp_update_products($file_path, $id_col, $price_col, $sale_col){
       }
       if($instock){
         $wpdb->update( $prefix .'postmeta', array('meta_value'=>'instock'), array('meta_key'=>'_stock_status', 'post_id'=>$product->ID));
+        $wpdb->update( $prefix .'wc_product_meta_lookup', array('stock_status'=>'instock'), array('product_id'=>$product->ID));
       }else{
         $wpdb->update( $prefix .'postmeta', array('meta_value'=>'outofstock'), array('meta_key'=>'_stock_status', 'post_id'=>$product->ID));
+        $wpdb->update( $prefix .'wc_product_meta_lookup', array('stock_status'=>'outofstock'), array('product_id'=>$product->ID));
       }
     }
   } else {
